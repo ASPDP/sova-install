@@ -121,6 +121,20 @@ if (-not (Test-Path (Join-Path $target ".git"))) {
         Write-Host "  [OK] Restored .env" -ForegroundColor Green
     }
 
+    # Copy SSL certificates from $targetDir if not already present in src/
+    foreach ($certFile in @("cert.pem", "key.pem")) {
+        $certSrc  = Join-Path $targetDir $certFile
+        $certDest = Join-Path $srcDir $certFile
+        if (-not (Test-Path $certDest)) {
+            if (Test-Path $certSrc) {
+                Copy-Item $certSrc $certDest -Force
+                Write-Host "  [OK] Copied $certFile from $targetDir" -ForegroundColor Green
+            } else {
+                Write-Host "  [WARNING] $certFile not found in $targetDir — place it there before starting the server" -ForegroundColor Yellow
+            }
+        }
+    }
+
     # ── Step 5: Compare env vars, install deps, compile ──────────────────
     Write-Host ""
     Write-Host "[Step 5/5] Checking environment and installing dependencies..." -ForegroundColor Yellow
