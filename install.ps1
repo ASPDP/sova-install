@@ -2,10 +2,32 @@ param([string]$InstallDir = ".", [switch]$Force)
 
 $repoUrl = "https://github.com/ASPDP/sova-on-prem.git"
 
-# Resolve install directory ($PSScriptRoot is empty when run via irm|iex)
-$resolvedDir = Resolve-Path $InstallDir -ErrorAction SilentlyContinue
-$targetDir   = if ($resolvedDir) { [string]$resolvedDir.ProviderPath } else { $PWD.Path }
-$target      = Join-Path $targetDir "sova-on-prem"
+# Walk up from $startPath to find the nearest .git folder
+function Find-GitRoot($startPath) {
+    $path = $startPath
+    while ($path) {
+        if (Test-Path (Join-Path $path ".git")) { return $path }
+        $parent = Split-Path $path -Parent
+        if ($parent -eq $path) { break }
+        $path = $parent
+    }
+    return $null
+}
+
+# When run via irm|iex $PSScriptRoot is empty — fall back to $PWD
+$startPath = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
+$gitRoot   = Find-GitRoot $startPath
+
+if ($gitRoot) {
+    # Already inside an existing repo — use it directly
+    $target    = $gitRoot
+    $targetDir = Split-Path $gitRoot -Parent   # folder that contains sova-on-prem/
+} else {
+    # Not inside a repo — resolve fresh-install destination
+    $resolvedDir = Resolve-Path $InstallDir -ErrorAction SilentlyContinue
+    $targetDir   = if ($resolvedDir) { [string]$resolvedDir.ProviderPath } else { $PWD.Path }
+    $target      = Join-Path $targetDir "sova-on-prem"
+}
 
 if (-not (Test-Path (Join-Path $target ".git"))) {
 
