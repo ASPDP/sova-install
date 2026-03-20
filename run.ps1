@@ -31,5 +31,5 @@ if ($gitRoot) {
     git clone $repoUrl $target
     if ($LASTEXITCODE -ne 0) { Write-Host "[ERROR] git clone failed" -ForegroundColor Red; exit 1 }
 
-    & (Join-Path $target "install.ps1") -Force:$Force -InstallDir $targetDir
+    & (Join-Path $target "install.ps1") -Force:$Force -InstallDir $targetDir -FreshInstall
 }
