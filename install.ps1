@@ -93,8 +93,15 @@ if (-not (Test-Path (Join-Path $target ".git"))) {
         Write-Host ""
     }
 
-    # ── Step 2: Backup .env ──────────────────────────────────────────────
+    # ── Step 2: Backup .env (copy from $targetDir if not yet in src/) ───────
     Write-Host "[Step 2/5] Preserving .env..." -ForegroundColor Yellow
+
+    # If .env is not in src/ but sits next to sova-on-prem/ — copy it first
+    $envInTargetDir = Join-Path $targetDir ".env"
+    if (-not (Test-Path $envPath) -and (Test-Path $envInTargetDir)) {
+        Copy-Item $envInTargetDir $envPath -Force
+        Write-Host "  [OK] Copied .env from $targetDir" -ForegroundColor Green
+    }
 
     $hadEnv = Test-Path $envPath
     if ($hadEnv) {
@@ -210,7 +217,7 @@ if (-not (Test-Path (Join-Path $target ".git"))) {
             Write-Host "  [INFO] Review and remove if no longer needed" -ForegroundColor Gray
         }
     } elseif (-not $hadEnv) {
-        Write-Host "  [INFO] No .env — copy src\.env.example to src\.env and fill in values" -ForegroundColor Yellow
+        Write-Host "  [INFO] No .env — copy .env.example to .env and fill in values" -ForegroundColor Yellow
     }
 
     Write-Host ""
@@ -230,6 +237,6 @@ if (-not (Test-Path (Join-Path $target ".git"))) {
     Write-Host "  Update complete!" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Next: cd src && npm start" -ForegroundColor Cyan
+    Write-Host "Next: npm start" -ForegroundColor Cyan
     Write-Host ""
 }
