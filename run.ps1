@@ -13,26 +13,20 @@ function Find-GitRoot($startPath) {
     return $null
 }
 
-# Refresh install.ps1 from origin/<branch> so a broken on-disk copy
-# (e.g. older version without UTF-8 BOM that PS 5.1 cannot parse) cannot
-# block the bootstrap. Self-healing: even if the local file is invalid,
-# we replace it with origin's version before invoking it.
+# Refresh install.ps1 directly from raw.githubusercontent.com so a broken
+# on-disk copy (e.g. older version without UTF-8 BOM that PS 5.1 cannot
+# parse) cannot block the bootstrap. Invoke-WebRequest -OutFile writes
+# response bytes byte-for-byte, preserving the BOM and Cyrillic literals.
+# Doesn't depend on the local git state being healthy.
 function Refresh-InstallScript($repoDir) {
-    Push-Location $repoDir
+    $installPath = Join-Path $repoDir "install.ps1"
+    $rawUrl = "https://raw.githubusercontent.com/ASPDP/sova-on-prem/master/install.ps1"
     try {
-        git fetch origin --quiet 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [WARNING] git fetch failed - using on-disk install.ps1" -ForegroundColor Yellow
-            return
-        }
-        $branch = git rev-parse --abbrev-ref HEAD 2>$null
-        if ($LASTEXITCODE -ne 0 -or -not $branch -or $branch -eq "HEAD") { $branch = "master" }
-        git checkout "origin/$branch" -- install.ps1 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  [OK] Refreshed install.ps1 from origin/$branch" -ForegroundColor Green
-        }
-    } finally {
-        Pop-Location
+        Invoke-WebRequest -Uri $rawUrl -OutFile $installPath -UseBasicParsing -ErrorAction Stop
+        Write-Host "  [OK] Refreshed install.ps1 from $rawUrl" -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARNING] Could not download install.ps1: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  [INFO] Falling back to on-disk copy" -ForegroundColor Gray
     }
 }
 
